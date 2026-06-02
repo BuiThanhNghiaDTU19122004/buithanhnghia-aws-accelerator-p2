@@ -1,0 +1,57 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install esbuild globally
+        run: npm install -g esbuild
+
+      - name: Build application
+        run: |
+          npm run build
+          npm run bundle
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::479650866443:role/github-actions-deploy-role
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: SAM Build
+        run: npm install -g esbuild && sam build
+
+      - name: SAM Deploy
+        run: |
+          sam deploy --no-confirm-changeset \
+            --no-fail-on-empty-changeset \
+            --stack-name ehr-annotation-backend \
+            --capabilities CAPABILITY_IAM \
+            --resolve-s3 \
+            --parameter-overrides \
+              DocumentsBucketName=${{ secrets.DOCUMENTS_BUCKET_NAME }} \
+              EhrTableName=${{ secrets.EHR_TABLE_NAME }} \
+              GroqApiKey=${{ secrets.GROQ_API_KEY }} \
+              NotificationEmail=${{ secrets.NOTIFICATION_EMAIL }}
+
+
+

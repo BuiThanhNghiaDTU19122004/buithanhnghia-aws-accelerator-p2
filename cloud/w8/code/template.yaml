@@ -1,0 +1,302 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: EHR Annotation Tool Backend SAM Template
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 256
+    Runtime: nodejs20.x
+    Architectures:
+      - x86_64
+
+Parameters:
+  DocumentsBucketName:
+    Type: String
+    Description: Name of the S3 bucket for documents
+  EhrTableName:
+    Type: String
+    Description: Name of the single DynamoDB table for EHR data
+  GroqApiKey:
+    Type: String
+    Description: Groq API Key
+  NotificationEmail:
+    Type: String
+    Description: Email address to receive DDoS alert notifications
+  DdosRequestThreshold:
+    Type: Number
+    Default: 5000
+    Description: Number of API Gateway requests in 5 minutes to trigger the kill switch
+
+Resources:
+  EhrApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Ref AWS::StackName
+      StageName: prod
+      Auth:
+        ApiKeyRequired: true
+        AddApiKeyRequiredToCorsPreflight: false
+      Cors:
+        AllowMethods: "'*'"
+        AllowHeaders: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+      MethodSettings:
+        - HttpMethod: '*'
+          ResourcePath: '/*'
+          ThrottlingBurstLimit: 20
+          ThrottlingRateLimit: 50
+
+  EhrBackendFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/
+      Handler: serverless-bundle.handler
+      ReservedConcurrentExecutions: 5 # Prevent run-away compute costs
+      Events:
+        ProxyApiRoot:
+          Type: Api
+          Properties:
+            RestApiId: !Ref EhrApiGateway
+            Path: /
+            Method: ANY
+        ProxyApiGreedy:
+          Type: Api
+          Properties:
+            RestApiId: !Ref EhrApiGateway
+            Path: /{proxy+}
+            Method: ANY
+      Environment:
+        Variables:
+          GROQ_API_KEY: !Ref GroqApiKey
+          EHR_TABLE_NAME: !Ref EhrTableName
+          DOCUMENTS_BUCKET_NAME: !Ref DocumentsBucketName
+          ANNOTATION_QUEUE_URL: !Ref EhrAnnotationQueue
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref DocumentsBucketName
+        - DynamoDBCrudPolicy:
+            TableName: !Ref EhrTableName
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+                - dynamodb:Scan
+              Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${EhrTableName}/index/*"
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt EhrAnnotationQueue.QueueName
+
+  EhrAnnotationWorkerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/
+      Handler: worker-bundle.handler
+      ReservedConcurrentExecutions: 2 # Hard cap on LLM parallel processing
+      Events:
+        SQSEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt EhrAnnotationQueue.Arn
+            BatchSize: 5
+      Environment:
+        Variables:
+          GROQ_API_KEY: !Ref GroqApiKey
+          EHR_TABLE_NAME: !Ref EhrTableName
+          DOCUMENTS_BUCKET_NAME: !Ref DocumentsBucketName
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref DocumentsBucketName
+        - DynamoDBCrudPolicy:
+            TableName: !Ref EhrTableName
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+                - dynamodb:Scan
+              Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${EhrTableName}/index/*"
+
+  EhrAnnotationQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 180
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt EhrAnnotationDLQ.Arn
+        maxReceiveCount: 3
+
+  EhrAnnotationDLQ:
+    Type: AWS::SQS::Queue
+
+  EhrAnnotationQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref EhrAnnotationQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt EhrAnnotationQueue.Arn
+
+  EhrAnnotationBusRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "Routes S3 ObjectCreated events to the Annotation Queue"
+      EventPattern:
+        source:
+          - aws.s3
+        detail-type:
+          - Object Created
+        detail:
+          bucket:
+            name:
+              - !Ref DocumentsBucketName
+          object:
+            key:
+              - prefix: "documents/"
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt EhrAnnotationQueue.Arn
+          Id: "EhrAnnotationQueueTarget"
+
+  EhrTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref EhrTableName
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: SKIndex
+          KeySchema:
+            - AttributeName: SK
+              KeyType: HASH
+            - AttributeName: PK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+      BillingMode: PROVISIONED
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
+  DocumentsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref DocumentsBucketName
+      NotificationConfiguration:
+        EventBridgeConfiguration:
+          EventBridgeEnabled: true
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  EhrApiKey:
+    Type: AWS::ApiGateway::ApiKey
+    Properties:
+      Enabled: true
+      GenerateDistinctId: true
+      Name: !Sub "EhrApiKey-${AWS::StackName}"
+
+  EhrUsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    Properties:
+      ApiStages:
+        - ApiId: !Ref EhrApiGateway
+          Stage: prod
+      UsagePlanName: !Sub "EhrUsagePlan-${AWS::StackName}"
+      Throttle:
+        BurstLimit: 20
+        RateLimit: 50
+      Quota:
+        Limit: 50000
+        Period: MONTH
+
+  EhrUsagePlanKey:
+    Type: AWS::ApiGateway::UsagePlanKey
+    Properties:
+      KeyId: !Ref EhrApiKey
+      KeyType: API_KEY
+      UsagePlanId: !Ref EhrUsagePlan
+
+  EhrKillSwitchTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "EhrKillSwitchTopic-${AWS::StackName}"
+      Subscription:
+        - Endpoint: !Ref NotificationEmail
+          Protocol: email
+
+  EhrApiGatewayTrafficAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: !Sub "Triggered if API Gateway requests exceed ${DdosRequestThreshold} in 5 minutes. Triggers API Gateway Kill Switch."
+      Namespace: AWS/ApiGateway
+      MetricName: Count
+      Dimensions:
+        - Name: ApiName
+          Value: !Ref AWS::StackName
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: !Ref DdosRequestThreshold
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      AlarmActions:
+        - !Ref EhrKillSwitchTopic
+      TreatMissingData: notBreaching
+
+  EhrApiGatewayKillSwitchFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/
+      Handler: kill-switch-bundle.handler
+      Runtime: nodejs20.x
+      Timeout: 30
+      MemorySize: 128
+      Environment:
+        Variables:
+          API_GATEWAY_ID: !Ref EhrApiGateway
+          STAGE_NAME: prod
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - apigateway:PATCH
+              Resource: !Sub "arn:aws:apigateway:${AWS::Region}::/restapis/${EhrApiGateway}/stages/prod"
+      Events:
+        SnsEvent:
+          Type: SNS
+          Properties:
+            Topic: !Ref EhrKillSwitchTopic
+
+Outputs:
+  ApiEndpoint:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${EhrApiGateway}.execute-api.${AWS::Region}.amazonaws.com/prod/"
+
+  EhrAnnotationQueueUrl:
+    Description: "URL of the Annotation SQS Queue"
+    Value: !Ref EhrAnnotationQueue
+
+  EhrAnnotationDLQUrl:
+    Description: "URL of the Dead Letter Queue"
+    Value: !Ref EhrAnnotationDLQ
+
+  EhrApiKeyId:
+    Description: "API Key ID for API Gateway"
+    Value: !Ref EhrApiKey
