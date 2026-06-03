@@ -1,32 +1,29 @@
 variable "aws_region" {
   type    = string
-  default = "ap-southeast-1"
+  default = "us-east-1"
 }
 
-variable "stack_name" {
+variable "floci_endpoint" {
   type    = string
-  default = "ehr_annotation_be"
+  default = "http://localhost:4566"
+}
+
+variable "project_name" {
+  type    = string
+  default = "ehr-annotation"
+}
+
+variable "environment" {
+  type    = string
+  default = "local"
 }
 
 variable "documents_bucket_name" {
-  type = string
+  type    = string
+  default = "ehr-annotation-local-documents"
 }
 
 variable "ehr_table_name" {
   type    = string
-  default = "ehr_annotation"
-}
-
-variable "groq_api_key" {
-  type      = string
-  sensitive = true
-}
-
-variable "notification_email" {
-  type = string
-}
-
-variable "ddos_request_threshold" {
-  type    = number
-  default = 5000
+  default = "ehr-annotation-local-table"
 }

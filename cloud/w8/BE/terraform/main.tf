@@ -1,5 +1,15 @@
+locals {
+  common_tags = {
+    Project     = var.project_name
+    Environment = var.environment
+    ManagedBy   = "Terraform"
+  }
+}
+
 resource "aws_s3_bucket" "documents" {
   bucket = var.documents_bucket_name
+
+  tags = local.common_tags
 }
 
 resource "aws_s3_bucket_public_access_block" "documents" {
@@ -21,13 +31,15 @@ resource "aws_dynamodb_table" "ehr" {
   billing_mode   = "PROVISIONED"
   read_capacity  = 5
   write_capacity = 5
-  hash_key       = "PK"
-  range_key      = "SK"
+
+  hash_key  = "PK"
+  range_key = "SK"
 
   attribute {
     name = "PK"
     type = "S"
   }
+
   attribute {
     name = "SK"
     type = "S"
@@ -49,4 +61,6 @@ resource "aws_dynamodb_table" "ehr" {
       key_type       = "RANGE"
     }
   }
+
+  tags = local.common_tags
 }

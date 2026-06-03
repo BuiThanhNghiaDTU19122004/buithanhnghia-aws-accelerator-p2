@@ -3,3 +3,8 @@ node_modules
 dist/
 .codex-tmp/
 public/
+terraform.tfvars
+terraform.tfstate
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate.backup
