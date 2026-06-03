@@ -11,7 +11,7 @@ WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run build
+RUN npm run build:backend
 
 FROM node:24-slim AS runtime
 

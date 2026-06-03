@@ -1,8 +1,0 @@
-<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title">
-  <title id="title">ClinAnnotate mark</title>
-  <rect width="96" height="96" rx="20" fill="#FFF7ED"/>
-  <path d="M23 27C23 20.925 27.925 16 34 16H62C68.075 16 73 20.925 73 27V50C73 56.075 68.075 61 62 61H50.5L37.5 74V61H34C27.925 61 23 56.075 23 50V27Z" fill="#EA580C"/>
-  <path d="M48 28V49" stroke="white" stroke-width="6" stroke-linecap="round"/>
-  <path d="M37.5 38.5H58.5" stroke="white" stroke-width="6" stroke-linecap="round"/>
-  <path d="M24 75H72" stroke="#FED7AA" stroke-width="5" stroke-linecap="round"/>
-</svg>

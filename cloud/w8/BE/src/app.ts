@@ -8,7 +8,11 @@ import { documentsApp } from './documents/documents.router';
 import { annotationsApp } from './annotations/annotations.router';
 
 export const app = new Hono();
-const staticRoot = existsSync('./public/index.html') ? './public' : './dist/public';
+const staticRoot = existsSync('./public/index.html')
+  ? './public'
+  : existsSync('./dist/public/index.html')
+    ? './dist/public'
+    : undefined;
 
 // Global middleware
 app.use('*', logger());
@@ -33,6 +37,8 @@ app.route('/annotations', annotationsApp);
 
 app.get('/health', (c) => c.json({ status: 'ok', framework: 'hono' }));
 
-app.get('/assets/*', serveStatic({ root: staticRoot }));
-app.get('/', serveStatic({ path: `${staticRoot}/index.html` }));
-app.get('/app', serveStatic({ path: `${staticRoot}/index.html` }));
+if (staticRoot) {
+  app.get('/assets/*', serveStatic({ root: staticRoot }));
+  app.get('/', serveStatic({ path: `${staticRoot}/index.html` }));
+  app.get('/app', serveStatic({ path: `${staticRoot}/index.html` }));
+}

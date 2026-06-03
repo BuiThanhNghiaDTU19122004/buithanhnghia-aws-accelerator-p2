@@ -1,0 +1,8 @@
+aws_region  = "ap-southeast-1"
+environment = "dev"
+
+# Leave null while learning so Terraform creates a globally unique bucket name.
+documents_bucket_name = null
+
+# Leave null to use "ehr-annotation-dev-ehr".
+ehr_table_name = null
