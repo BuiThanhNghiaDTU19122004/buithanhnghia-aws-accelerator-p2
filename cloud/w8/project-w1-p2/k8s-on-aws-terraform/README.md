@@ -206,8 +206,8 @@ Khi nộp bài, có thể chụp ảnh hoặc quay clip các bước sau:
 4. Kiểm tra app nằm trong Kubernetes:
 
    ```bash
-   kubectl get pods
-   kubectl get svc
+   sudo kubectl get pods
+   sudo kubectl get svc
    ```
 
 5. Sau khi chấm hoặc demo xong, chạy destroy:
@@ -215,6 +215,46 @@ Khi nộp bài, có thể chụp ảnh hoặc quay clip các bước sau:
    ```powershell
    terraform destroy -auto-approve
    ```
+
+## Chỗ chèn hình minh chứng
+
+Đặt ảnh chụp màn hình vào thư mục `images/`, rồi thay đúng tên file trong các
+dòng Markdown bên dưới. Mỗi hình có sẵn một dòng ghi chú để giải thích trainer
+đang nhìn thấy bằng chứng gì.
+
+### Hình 1 - Lệnh Terraform chạy thành công
+
+![Terraform apply thành công](images/01-terraform-apply.png)
+
+*Ghi chú: Ảnh này chứng minh repo chạy được từ đầu bằng `terraform init` và
+`terraform apply -auto-approve`, không cần thao tác thủ công trên AWS Console.*
+
+### Hình 2 - Output URL của ALB
+
+![Output app_url của ALB](images/02-alb-output.png)
+
+*Ghi chú: Ảnh này chứng minh Terraform đã tạo ALB và xuất ra URL public thông
+qua output `app_url`.*
+
+### Hình 3 - Mở được ứng dụng trên browser
+
+![Ứng dụng Pixel Game Store mở qua ALB](images/03-browser-alb-app.png)
+
+*Ghi chú: Ảnh này chứng minh URL ALB mở được trang Pixel Game Store trên browser.*
+
+### Hình 4 - App chạy trong Kubernetes
+
+![Kubernetes pods và service](images/04-kubernetes-pods-service.png)
+
+*Ghi chú: Ảnh này chứng minh app không chạy trực tiếp trên EC2 mà chạy trong
+Kubernetes dưới dạng pod và được expose bằng Service NodePort.*
+
+### Hình 5 - Destroy dọn sạch tài nguyên
+
+![Terraform destroy thành công](images/05-terraform-destroy.png)
+
+*Ghi chú: Ảnh này chứng minh đã chạy `terraform destroy -auto-approve` sau khi
+demo để dọn sạch tài nguyên AWS và tránh phát sinh chi phí.*
 
 ## Destroy để dọn sạch tài nguyên
 
