@@ -40,12 +40,58 @@ Mở URL đó trên browser. Kết quả đạt là trang **Pixel Game Store** h
 
 ```mermaid
 flowchart LR
-    User["Browser / Internet"] --> ALB["AWS Application Load Balancer :80"]
-    ALB --> TG["Target Group"]
-    TG --> EC2["EC2 Amazon Linux 2023"]
-    EC2 --> Kind["kind Kubernetes cluster"]
-    Kind --> SVC["Service NodePort :30080"]
-    SVC --> Pods["NGINX pods chạy Pixel Game Store"]
+    %% =======================
+    %% Pixel Game Store Architecture
+    %% =======================
+
+    User["User Browser<br/>Access website over HTTP"] -->|HTTP :80| ALB
+
+    subgraph AWS["AWS Cloud"]
+        subgraph Public["Public Entry Layer"]
+            ALB["Application Load Balancer<br/>Listener: HTTP :80<br/>Security Group: allow inbound :80"]
+            TG["Target Group<br/>Target type: EC2 instance<br/>Forward traffic to NodePort :30080<br/>Health check: HTTP"]
+        end
+
+        ALB -->|Forward request| TG
+
+        subgraph Compute["EC2 Compute Layer"]
+            EC2["EC2 Instance<br/>Amazon Linux 2023<br/>Docker + kind + kubectl<br/>Security Group: allow ALB to :30080"]
+
+            TG -->|HTTP :30080| EC2
+
+            subgraph Kind["kind Kubernetes Cluster running inside EC2"]
+                Node["kind worker/control-plane node<br/>Container-based Kubernetes node"]
+
+                SVC["Kubernetes Service<br/>Type: NodePort<br/>Service port: 80<br/>NodePort: 30080"]
+
+                Deploy["Deployment<br/>nginx / Pixel Game Store<br/>desired replicas: multiple pods"]
+
+                Pod1["Pod 1<br/>NGINX serves Pixel Game Store"]
+                Pod2["Pod 2<br/>NGINX serves Pixel Game Store"]
+
+                Node --> SVC
+                SVC -->|Load balances inside cluster| Deploy
+                Deploy --> Pod1
+                Deploy --> Pod2
+            end
+
+            EC2 -->|NodePort maps host traffic into cluster| Node
+        end
+    end
+
+    %% Styling
+    classDef user fill:#ffffff,stroke:#1f2937,stroke-width:2px,color:#111827;
+    classDef aws fill:#eef6ff,stroke:#2563eb,stroke-width:2px,color:#111827;
+    classDef entry fill:#e0f2fe,stroke:#0284c7,stroke-width:2px,color:#0f172a;
+    classDef compute fill:#fff7ed,stroke:#ea580c,stroke-width:2px,color:#111827;
+    classDef k8s fill:#eef2ff,stroke:#4f46e5,stroke-width:2px,color:#111827;
+    classDef pod fill:#ecfdf5,stroke:#16a34a,stroke-width:2px,color:#111827;
+
+    class User user;
+    class ALB,TG entry;
+    class EC2 compute;
+    class Node,SVC,Deploy k8s;
+    class Pod1,Pod2,Pod3 pod;
 ```
 
 Luồng request:
