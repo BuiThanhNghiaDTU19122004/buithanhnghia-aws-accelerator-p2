@@ -28,18 +28,13 @@ Region mặc định của bài là:
 ap-southeast-1
 ```
 
-Từ thư mục repo này, chạy đúng một dòng dưới đây để init và apply:
+Từ thư mục repo này, chạy đúng một dòng dưới đây để init, plan và apply:
 
 ```powershell
-terraform init; if ($LASTEXITCODE -eq 0) { terraform apply -auto-approve }
+terraform init;
+terraform plan;
+terraform apply -auto-approve
 ```
-
-Nếu dùng Bash hoặc Git Bash:
-
-```bash
-terraform init && terraform apply -auto-approve
-```
-
 Sau khi apply xong, lấy URL ứng dụng:
 
 ```powershell
