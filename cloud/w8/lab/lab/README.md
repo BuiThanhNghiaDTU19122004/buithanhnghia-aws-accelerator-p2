@@ -1,48 +1,40 @@
 # K8s trên AWS bằng Terraform
 
-Dự án này dùng Terraform để dựng một môi trường Kubernetes nhỏ trên AWS, deploy
-ứng dụng demo **Pixel Game Store** vào Kubernetes, rồi public ứng dụng ra Internet
-qua **AWS Application Load Balancer (ALB)**.
+Repo này dùng Terraform để dựng EC2, chạy cụm Kubernetes bằng `kind` trên EC2, deploy app
+demo **Pixel Game Store** vào Kubernetes và public app ra Internet qua **AWS ALB**.
 
-Điểm chính của bài:
+Mục tiêu bài lab:
 
-- Chạy từ repo sạch bằng một lệnh Terraform.
-- Ứng dụng chạy trong Kubernetes bằng `kind`, không cài trực tiếp trên EC2.
-- ALB public nhận request HTTP và forward vào Kubernetes NodePort.
-- Terraform khai báo và wire tối thiểu 2 provider trong cùng cấu hình:
-  `hashicorp/aws` và `hashicorp/kubernetes`.
-- Có lệnh kiểm chứng URL ALB và lệnh destroy để dọn sạch tài nguyên.
+- Một lệnh từ repo sạch để dựng hạ tầng và deploy app.
+- App chạy trong Kubernetes, không cài trực tiếp lên EC2.
+- Người dùng truy cập app qua URL public của ALB.
+- Có wire tối thiểu 2 Terraform provider: `aws` và `kubernetes`.
+- Có bằng chứng browser, Kubernetes và lệnh destroy.
 
-## Chạy nhanh từ repo sạch
+## Chạy nhanh
 
-Yêu cầu trước khi chạy:
+Yêu cầu:
 
-- Đã cài Terraform `>= 1.6.0`.
-- Máy local đã cấu hình AWS credentials.
-- AWS account có quyền tạo EC2, IAM, Security Group, ALB và Target Group.
-- Region đang dùng có default VPC với ít nhất 2 subnet.
+- Terraform `>= 1.6.0`
+- AWS credentials đã cấu hình trên máy local
+- AWS account có quyền tạo EC2, IAM, Security Group, ALB và Target Group
+- Region có default VPC với ít nhất 2 subnet
 
-Region mặc định của bài là:
+Region mặc định: `ap-southeast-1`.
 
-```hcl
-ap-southeast-1
-```
-
-Từ thư mục repo này, chạy đúng một dòng dưới đây để init, plan và apply:
+Từ thư mục repo này, chạy một dòng:
 
 ```powershell
-terraform init;
-terraform plan;
-terraform apply -auto-approve
+terraform init; if ($LASTEXITCODE -eq 0) { terraform apply -auto-approve }
 ```
-Sau khi apply xong, lấy URL ứng dụng:
+
+Lấy URL app:
 
 ```powershell
 terraform output -raw app_url
 ```
 
-Mở URL đó trên browser. Kết quả đạt là trang **Pixel Game Store** hiển thị qua
-DNS của ALB.
+Mở URL đó trên browser. Kết quả đạt là trang **Pixel Game Store** hiển thị qua DNS của ALB.
 
 ## Kiến trúc
 
@@ -58,34 +50,30 @@ flowchart LR
 
 Luồng request:
 
-1. Người dùng mở `app_url` là DNS public của ALB.
+1. User mở `app_url`, là DNS public của ALB.
 2. ALB nhận HTTP request ở port `80`.
-3. ALB forward request vào EC2 thông qua Target Group.
-4. Target Group trỏ tới port `30080` trên EC2.
-5. `kind` map host port `30080` vào Kubernetes node.
-6. Kubernetes `Service` loại `NodePort` route request tới các pod NGINX.
-7. NGINX serve file HTML của ứng dụng Pixel Game Store.
+3. Target Group forward request vào EC2 port `30080`.
+4. `kind` map host port `30080` vào Kubernetes node.
+5. Kubernetes `Service NodePort` route request tới pod NGINX đang serve Pixel Game Store.
 
-## Terraform tạo những gì
+## Terraform tạo gì
 
 | Thành phần | File | Vai trò |
 | --- | --- | --- |
-| AWS provider và Kubernetes provider | `versions.tf` | Khai báo version Terraform và 2 provider dùng trong bài. |
-| Biến cấu hình | `variables.tf` | Chứa region, tên project, instance type, app port, kubeconfig path và tag chung. |
-| AWS infrastructure | `main.tf` | Tạo default VPC lookup, subnet lookup, IAM role, instance profile, security group, EC2, ALB, target group, listener và attachment. |
-| App source | `app/` | Chứa `index.html` và `Dockerfile`, giống một project static web nhỏ. |
-| Kubernetes manifest | `k8s/game-store.yaml.tftpl` | Khai báo `Deployment` và `Service NodePort`, không nhúng HTML trực tiếp vào YAML. |
-| Bootstrap Kubernetes | `user_data.sh.tftpl` | Cài Docker, `kind`, `kubectl`, tạo cluster `kind`, build image local, load image vào kind rồi deploy app vào Kubernetes. |
-| Kubernetes provider proof | `kubernetes.tf` | Tạo một `ConfigMap` nhỏ bằng Kubernetes provider khi bật biến opt-in. |
+| Provider | `versions.tf` | Khai báo `aws` và `kubernetes` provider. |
+| Biến | `variables.tf` | Region, project name, instance type, app port, kubeconfig path và tag chung. |
+| AWS infra | `main.tf` | Lookup default VPC/subnet, tạo IAM, Security Group, EC2, ALB, Target Group, Listener. |
+| App | `app/` | Static HTML app và Dockerfile. |
+| K8s manifest | `k8s/game-store.yaml.tftpl` | `Deployment` và `Service NodePort` cho app. |
+| Bootstrap | `user_data.sh.tftpl` | Cài Docker/kind/kubectl, tạo cluster, build image, load image và deploy app vào K8s. |
+| K8s provider proof | `kubernetes.tf` | ConfigMap opt-in để chứng minh Kubernetes provider có resource thật khi kubeconfig reachable. |
 | Output | `outputs.tf` | Xuất `alb_dns_name`, `app_url`, `ec2_instance_id`. |
 
 ## Provider được wire như thế nào
 
-Dự án dùng 2 provider trong cùng một Terraform configuration.
+Repo dùng 2 provider trong cùng Terraform configuration.
 
-### 1. AWS provider
-
-AWS provider được khai báo trong `versions.tf`:
+### AWS provider
 
 ```hcl
 provider "aws" {
@@ -93,17 +81,11 @@ provider "aws" {
 }
 ```
 
-Provider này quản lý toàn bộ hạ tầng AWS:
+Chọn `aws` provider vì toàn bộ hạ tầng ngoài Kubernetes nằm trên AWS: EC2, IAM, Security
+Group, ALB, Target Group, Listener và attachment. Đây là provider chính, trực tiếp tạo tài
+nguyên khi chạy `terraform apply`.
 
-- Tìm default VPC và subnet.
-- Tạo IAM role và instance profile cho EC2.
-- Tạo Security Group cho ALB và EC2.
-- Tạo EC2 instance chạy Docker và `kind`.
-- Tạo ALB, Target Group, Listener và Target Group Attachment.
-
-### 2. Kubernetes provider
-
-Kubernetes provider cũng được khai báo trong `versions.tf`:
+### Kubernetes provider
 
 ```hcl
 provider "kubernetes" {
@@ -111,9 +93,9 @@ provider "kubernetes" {
 }
 ```
 
-Provider này được wire bằng `config_path = var.kubeconfig_path`, nghĩa là
-Terraform sẽ dùng kubeconfig ở đường dẫn đó để nói chuyện với Kubernetes API.
-Repo có một resource thật do provider này quản lý trong `kubernetes.tf`:
+Chọn thêm `kubernetes` provider để đáp ứng yêu cầu wire provider thứ hai và để chứng minh Terraform
+có thể quản lý resource trong Kubernetes khi có kubeconfig truy cập được. Resource chứng minh nằm ở
+`kubernetes.tf`:
 
 ```hcl
 resource "kubernetes_config_map_v1" "provider_wire_proof" {
@@ -121,35 +103,29 @@ resource "kubernetes_config_map_v1" "provider_wire_proof" {
 }
 ```
 
-Biến `enable_kubernetes_provider_resource` mặc định là `false` để luồng one-click
-chính không bị phụ thuộc vào việc máy local có truy cập được Kubernetes API nằm
-bên trong EC2 hay chưa. Khi `kubeconfig_path` đã trỏ tới một cluster truy cập
-được, bật biến này sẽ tạo `ConfigMap` `terraform-provider-wire-proof` bằng chính
-Kubernetes provider.
+Mặc định `enable_kubernetes_provider_resource = false`, nên Kubernetes provider **chưa tạo gì trong
+luồng deploy EC2 kind mặc định**. Lý do là cluster `kind` được tạo bên trong EC2 bằng `user_data`
+sau khi Terraform đã tạo EC2. Máy local chạy Terraform không tự có kubeconfig/API endpoint reachable
+của cluster `kind` nằm trong EC2, nên nếu bắt provider này deploy `Deployment`/`Service` ngay trong
+luồng chính thì bài sẽ mất tính một lệnh và dễ lỗi vì phụ thuộc SSH tunnel hoặc copy kubeconfig thủ
+công.
 
-Trong bài này, cluster `kind` được tạo bên trong EC2 ở bước bootstrap nên manifest
-ứng dụng chính vẫn được apply bằng `kubectl` trong `user_data.sh.tftpl`. Cách này
-giúp bài chạy reproducible bằng một lần `terraform apply`: Terraform tạo EC2
-trước, EC2 tự bootstrap `kind`, rồi deploy app ngay trong cùng luồng khởi tạo.
-Nếu bắt Kubernetes provider quản lý trực tiếp `Deployment` và `Service`, Terraform
-local phải truy cập được kubeconfig của cluster `kind` nằm trong EC2, làm bài lab
-phức tạp hơn và ảnh hưởng đến yêu cầu one-click.
+Vì vậy thiết kế hiện tại tách rõ:
 
-## Vì sao chọn kiến trúc này
+- `aws` provider tạo hạ tầng AWS.
+- EC2 bootstrap tạo `kind` và dùng `kubectl` trong chính EC2 để deploy app vào Kubernetes.
+- `kubernetes` provider được wire sẵn và có resource opt-in để bật khi `kubeconfig_path` trỏ tới
+  một cluster reachable.
 
-Mục tiêu của bài là chứng minh app chạy thật trong Kubernetes nhưng vẫn giữ repo
-nhỏ, dễ chạy lại và dễ destroy.
+## Vì sao chọn thiết kế này
 
-- Dùng `kind` trên một EC2 giúp không cần tạo EKS, tiết kiệm chi phí cho bài lab.
-- Dùng ALB giúp URL public ổn định hơn so với truy cập thẳng public IP của EC2.
-- EC2 không chạy app trực tiếp. EC2 chỉ đóng vai trò host cho Docker và cluster
-  `kind`.
-- App nằm trong thư mục `app/`, được build thành Docker image local rồi deploy bằng Kubernetes `Deployment` và `Service`.
-- ALB chỉ được phép gọi vào port NodePort, còn app traffic đi tiếp qua
-  Kubernetes Service tới pod.
-- Toàn bộ tài nguyên AWS nằm trong Terraform state nên có thể destroy sạch.
+- `kind` trên một EC2 rẻ và nhẹ hơn EKS, phù hợp bài lab.
+- ALB cho URL public ổn định hơn so với gọi thẳng public IP của EC2.
+- EC2 chỉ là host chạy Docker/kind; app thật sự nằm trong pod Kubernetes.
+- NodePort `30080` là điểm nối đơn giản giữa ALB Target Group và Service trong cluster.
+- Terraform quản lý toàn bộ AWS resource nên có thể destroy sạch sau khi demo.
 
-## Kiểm chứng sau khi deploy
+## Kiểm chứng sau deploy
 
 Lấy URL:
 
@@ -157,7 +133,7 @@ Lấy URL:
 terraform output -raw app_url
 ```
 
-Gọi thử URL ALB:
+Gọi thử ALB:
 
 ```powershell
 curl.exe (terraform output -raw app_url)
@@ -166,16 +142,10 @@ curl.exe (terraform output -raw app_url)
 Kết quả đạt:
 
 - Browser mở được trang **Pixel Game Store**.
-- `curl` trả về HTML có title hoặc nội dung của Pixel Game Store.
-- ALB Target Group chuyển sang trạng thái healthy sau vài phút.
+- `curl` trả về HTML của Pixel Game Store.
+- ALB Target Group healthy sau vài phút.
 
-Có thể lấy EC2 instance ID để kiểm tra thêm:
-
-```powershell
-terraform output -raw ec2_instance_id
-```
-
-Nếu dùng AWS Systems Manager Session Manager để vào EC2, kiểm tra Kubernetes:
+Kiểm tra app chạy trong Kubernetes qua SSM Session Manager vào EC2:
 
 ```bash
 sudo kubectl get nodes
@@ -190,7 +160,7 @@ NAME         TYPE       CLUSTER-IP      EXTERNAL-IP   PORT(S)
 game-store   NodePort   ...             <none>        80:30080/TCP
 ```
 
-Kiểm tra log bootstrap trên EC2:
+Xem log bootstrap nếu cần debug:
 
 ```bash
 sudo tail -n 100 /var/log/user-data.log
@@ -198,7 +168,7 @@ sudo tail -n 100 /var/log/user-data.log
 
 ## Bằng chứng nộp bài
 
-Khi nộp bài, có thể chụp ảnh hoặc quay clip các bước sau:
+Khi nộp bài, chụp ảnh hoặc quay clip các bước sau:
 
 1. Chạy lệnh:
 
@@ -263,21 +233,13 @@ Kubernetes dưới dạng pod và được expose bằng Service NodePort.*
 *Ghi chú: Ảnh này chứng minh đã chạy `terraform destroy -auto-approve` sau khi
 demo để dọn sạch tài nguyên AWS và tránh phát sinh chi phí.*
 
-## Destroy để dọn sạch tài nguyên
+## Destroy
 
-Sau khi demo xong, chạy:
+Sau khi demo xong:
 
 ```powershell
 terraform destroy -auto-approve
 ```
 
-Lệnh này xóa các tài nguyên AWS do Terraform tạo, gồm:
-
-- EC2 instance.
-- IAM role và instance profile.
-- Security Group.
-- ALB.
-- Target Group.
-- Listener và Target Group Attachment.
-
-Nên destroy ngay sau khi hoàn tất để tránh phát sinh chi phí hạ tầng.
+Lệnh này xóa các tài nguyên AWS do Terraform tạo: EC2, IAM role/instance profile, Security Group,
+ALB, Target Group, Listener và Target Group Attachment.
