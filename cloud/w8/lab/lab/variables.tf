@@ -24,6 +24,18 @@ variable "kubeconfig_path" {
   default     = "~/.kube/config"
 }
 
+variable "enable_kubernetes_provider_resource" {
+  type        = bool
+  description = "Create a small ConfigMap with the Kubernetes provider when kubeconfig_path points to a reachable cluster."
+  default     = false
+}
+
+variable "kubernetes_provider_namespace" {
+  type        = string
+  description = "Namespace used by the Kubernetes provider proof ConfigMap."
+  default     = "default"
+}
+
 variable "common_tags" {
   type = map(string)
 

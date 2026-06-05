@@ -74,6 +74,7 @@ Luồng request:
 | Biến cấu hình | `variables.tf` | Chứa region, tên project, instance type, app port, kubeconfig path và tag chung. |
 | AWS infrastructure | `main.tf` | Tạo default VPC lookup, subnet lookup, IAM role, instance profile, security group, EC2, ALB, target group, listener và attachment. |
 | Bootstrap Kubernetes | `user_data.sh.tftpl` | Cài Docker, `kind`, `kubectl`, tạo cluster `kind`, deploy app vào Kubernetes. |
+| Kubernetes provider proof | `kubernetes.tf` | Tạo một `ConfigMap` nhỏ bằng Kubernetes provider khi bật biến opt-in. |
 | Output | `outputs.tf` | Xuất `alb_dns_name`, `app_url`, `ec2_instance_id`. |
 
 ## Provider được wire như thế nào
@@ -108,16 +109,29 @@ provider "kubernetes" {
 }
 ```
 
-Provider này được wire vào cùng cấu hình Terraform để thể hiện hướng tích hợp
-Kubernetes provider với kubeconfig. Trong bài này, cluster `kind` được tạo bên
-trong EC2 ở bước bootstrap nên manifest Kubernetes được apply bằng `kubectl`
-trong `user_data.sh.tftpl`.
+Provider này được wire bằng `config_path = var.kubeconfig_path`, nghĩa là
+Terraform sẽ dùng kubeconfig ở đường dẫn đó để nói chuyện với Kubernetes API.
+Repo có một resource thật do provider này quản lý trong `kubernetes.tf`:
 
-Cách này giúp bài chạy reproducible bằng một lần `terraform apply`, vì Terraform
-tạo EC2 trước, EC2 tự bootstrap `kind`, rồi deploy app ngay trong cùng luồng
-khởi tạo. Nếu dùng Kubernetes provider để quản lý trực tiếp `Deployment` và
-`Service`, Terraform local phải truy cập được kubeconfig của cluster `kind` nằm
-trong EC2, làm bài lab phức tạp hơn và không còn gọn cho yêu cầu one-click.
+```hcl
+resource "kubernetes_config_map_v1" "provider_wire_proof" {
+  count = var.enable_kubernetes_provider_resource ? 1 : 0
+}
+```
+
+Biến `enable_kubernetes_provider_resource` mặc định là `false` để luồng one-click
+chính không bị phụ thuộc vào việc máy local có truy cập được Kubernetes API nằm
+bên trong EC2 hay chưa. Khi `kubeconfig_path` đã trỏ tới một cluster truy cập
+được, bật biến này sẽ tạo `ConfigMap` `terraform-provider-wire-proof` bằng chính
+Kubernetes provider.
+
+Trong bài này, cluster `kind` được tạo bên trong EC2 ở bước bootstrap nên manifest
+ứng dụng chính vẫn được apply bằng `kubectl` trong `user_data.sh.tftpl`. Cách này
+giúp bài chạy reproducible bằng một lần `terraform apply`: Terraform tạo EC2
+trước, EC2 tự bootstrap `kind`, rồi deploy app ngay trong cùng luồng khởi tạo.
+Nếu bắt Kubernetes provider quản lý trực tiếp `Deployment` và `Service`, Terraform
+local phải truy cập được kubeconfig của cluster `kind` nằm trong EC2, làm bài lab
+phức tạp hơn và ảnh hưởng đến yêu cầu one-click.
 
 ## Vì sao chọn kiến trúc này
 
