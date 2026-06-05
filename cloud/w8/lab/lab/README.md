@@ -162,9 +162,9 @@ terraform output -raw ec2_instance_id
 Nếu dùng AWS Systems Manager Session Manager để vào EC2, kiểm tra Kubernetes:
 
 ```bash
-kubectl get nodes
-kubectl get pods
-kubectl get svc
+sudo kubectl get nodes
+sudo kubectl get pods
+sudo kubectl get svc
 ```
 
 Kết quả mong đợi:
@@ -211,11 +211,7 @@ Khi nộp bài, có thể chụp ảnh hoặc quay clip các bước sau:
    terraform destroy -auto-approve
    ```
 
-## Chỗ chèn hình minh chứng
-
-Đặt ảnh chụp màn hình vào thư mục `images/`, rồi thay đúng tên file trong các
-dòng Markdown bên dưới. Mỗi hình có sẵn một dòng ghi chú để giải thích trainer
-đang nhìn thấy bằng chứng gì.
+## Hình minh chứng
 
 ### Hình 1 - Lệnh Terraform chạy thành công
 
@@ -269,17 +265,3 @@ Lệnh này xóa các tài nguyên AWS do Terraform tạo, gồm:
 - Listener và Target Group Attachment.
 
 Nên destroy ngay sau khi hoàn tất để tránh phát sinh chi phí hạ tầng.
-
-## Mapping với yêu cầu đề bài
-
-| Yêu cầu | Cách dự án đáp ứng |
-| --- | --- |
-| Repo Terraform đầy đủ | Các file Terraform chính gồm `versions.tf`, `variables.tf`, `main.tf`, `outputs.tf`, `user_data.sh.tftpl`. |
-| README có lệnh chạy | README có lệnh one-line để `terraform init` và `terraform apply`. |
-| README có sơ đồ kiến trúc | Sơ đồ Mermaid mô tả Browser -> ALB -> EC2 -> kind -> Service -> Pods. |
-| Giải thích wire provider | Có phần riêng giải thích provider `aws` và `kubernetes`. |
-| App chạy trong K8s | App được deploy thành Kubernetes `ConfigMap`, `Deployment`, `Service` trong `user_data.sh.tftpl`. |
-| Không cài app trực tiếp trên EC2 | EC2 chỉ cài Docker, `kind`, `kubectl`; app chạy trong pod NGINX. |
-| URL ALB mở được app | Output `app_url` trả về DNS ALB để mở trên browser. |
-| Có destroy | README có lệnh `terraform destroy -auto-approve`. |
-| Reproducible | Từ repo sạch chạy lại cùng lệnh sẽ tạo lại cùng kiến trúc và app. |
