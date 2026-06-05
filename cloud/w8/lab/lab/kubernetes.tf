@@ -1,4 +1,4 @@
-resource "ku" "provider_wire_proof" {
+resource "kubernetes_config_map_v1" "provider_wire_proof" {
   count = var.enable_kubernetes_provider_resource ? 1 : 0
 
   metadata {

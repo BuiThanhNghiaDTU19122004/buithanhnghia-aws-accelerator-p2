@@ -129,7 +129,13 @@ resource "aws_instance" "k8s" {
   iam_instance_profile   = aws_iam_instance_profile.ec2.name
 
   user_data = templatefile("${path.module}/user_data.sh.tftpl", {
-    app_port = var.app_port
+    app_port       = var.app_port
+    app_index_html = file("${path.module}/app/index.html")
+    app_dockerfile = file("${path.module}/app/Dockerfile")
+    k8s_manifest = templatefile("${path.module}/k8s/game-store.yaml.tftpl", {
+      app_port = var.app_port
+      image    = "game-store:local"
+    })
   })
   user_data_replace_on_change = true
 

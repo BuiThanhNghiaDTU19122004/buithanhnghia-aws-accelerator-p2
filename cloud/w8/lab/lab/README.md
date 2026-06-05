@@ -73,7 +73,9 @@ Luồng request:
 | AWS provider và Kubernetes provider | `versions.tf` | Khai báo version Terraform và 2 provider dùng trong bài. |
 | Biến cấu hình | `variables.tf` | Chứa region, tên project, instance type, app port, kubeconfig path và tag chung. |
 | AWS infrastructure | `main.tf` | Tạo default VPC lookup, subnet lookup, IAM role, instance profile, security group, EC2, ALB, target group, listener và attachment. |
-| Bootstrap Kubernetes | `user_data.sh.tftpl` | Cài Docker, `kind`, `kubectl`, tạo cluster `kind`, deploy app vào Kubernetes. |
+| App source | `app/` | Chứa `index.html` và `Dockerfile`, giống một project static web nhỏ. |
+| Kubernetes manifest | `k8s/game-store.yaml.tftpl` | Khai báo `Deployment` và `Service NodePort`, không nhúng HTML trực tiếp vào YAML. |
+| Bootstrap Kubernetes | `user_data.sh.tftpl` | Cài Docker, `kind`, `kubectl`, tạo cluster `kind`, build image local, load image vào kind rồi deploy app vào Kubernetes. |
 | Kubernetes provider proof | `kubernetes.tf` | Tạo một `ConfigMap` nhỏ bằng Kubernetes provider khi bật biến opt-in. |
 | Output | `outputs.tf` | Xuất `alb_dns_name`, `app_url`, `ec2_instance_id`. |
 
@@ -142,7 +144,7 @@ nhỏ, dễ chạy lại và dễ destroy.
 - Dùng ALB giúp URL public ổn định hơn so với truy cập thẳng public IP của EC2.
 - EC2 không chạy app trực tiếp. EC2 chỉ đóng vai trò host cho Docker và cluster
   `kind`.
-- App được khai báo thành Kubernetes `ConfigMap`, `Deployment` và `Service`.
+- App nằm trong thư mục `app/`, được build thành Docker image local rồi deploy bằng Kubernetes `Deployment` và `Service`.
 - ALB chỉ được phép gọi vào port NodePort, còn app traffic đi tiếp qua
   Kubernetes Service tới pod.
 - Toàn bộ tài nguyên AWS nằm trong Terraform state nên có thể destroy sạch.
