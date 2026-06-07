@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Simple AWS Web App</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Arial, sans-serif;
+      color: #172033;
+      background: #f5f7fb;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+    }
+    main {
+      width: min(720px, calc(100vw - 32px));
+      background: #fff;
+      border: 1px solid #d9e1ef;
+      border-radius: 8px;
+      padding: 28px;
+      box-shadow: 0 18px 50px rgba(23, 32, 51, 0.08);
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 32px;
+    }
+    p {
+      margin: 0 0 20px;
+      color: #516078;
+    }
+    form {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    input {
+      flex: 1;
+      min-width: 0;
+      padding: 12px;
+      border: 1px solid #b9c5d8;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+    button {
+      padding: 12px 16px;
+      border: 0;
+      border-radius: 6px;
+      background: #176b5d;
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    ul {
+      padding-left: 20px;
+      line-height: 1.7;
+    }
+    .status {
+      min-height: 24px;
+      font-size: 14px;
+      color: #516078;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Simple AWS Web App</h1>
+    <p>Frontend is public on S3. Backend runs on EC2. Data is stored in private RDS MySQL.</p>
+    <form id="message-form">
+      <input id="message-input" name="message" placeholder="Write a message to RDS" maxlength="255" required>
+      <button type="submit">Save</button>
+    </form>
+    <div class="status" id="status">Loading messages...</div>
+    <ul id="messages"></ul>
+  </main>
+  <script src="./app.js"></script>
+</body>
+</html>

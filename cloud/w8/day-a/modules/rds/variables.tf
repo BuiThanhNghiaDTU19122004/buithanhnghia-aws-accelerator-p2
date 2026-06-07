@@ -4,7 +4,7 @@ variable "private_subnet_ids" {
   type = list(string)
 }
 
-variable "ec2_security_group" {}
+variable "rds_security_group" {}
 
 variable "db_name" {}
 

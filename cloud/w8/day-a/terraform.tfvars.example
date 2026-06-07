@@ -1,0 +1,7 @@
+static_bucket_name = "nghia-static-assets-bucket-201023212626"
+
+# Mật khẩu database
+db_password = "YOUR_DB_PASSWORD"
+
+# CIDR cho phép SSH truy cập EC2. Đổi thành IP public của bạn theo định dạng /32.
+allowed_ssh_cidr = "YOUR_PUBLIC_IP/32"

@@ -1,0 +1,31 @@
+const apiBaseUrl = "${api_base_url}";
+const statusEl = document.querySelector("#status");
+const listEl = document.querySelector("#messages");
+const formEl = document.querySelector("#message-form");
+const inputEl = document.querySelector("#message-input");
+
+async function loadMessages() {
+  statusEl.textContent = "Loading messages...";
+  const response = await fetch(`$${apiBaseUrl}/api/messages`);
+  if (!response.ok) throw new Error("Could not load messages");
+  const messages = await response.json();
+  listEl.innerHTML = messages.map((item) => `<li>$${item.message}</li>`).join("");
+  statusEl.textContent = messages.length ? "Connected to backend and database." : "No messages yet.";
+}
+
+formEl.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const message = inputEl.value.trim();
+  if (!message) return;
+  await fetch(`$${apiBaseUrl}/api/messages`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message })
+  });
+  inputEl.value = "";
+  await loadMessages();
+});
+
+loadMessages().catch((error) => {
+  statusEl.textContent = error.message;
+});

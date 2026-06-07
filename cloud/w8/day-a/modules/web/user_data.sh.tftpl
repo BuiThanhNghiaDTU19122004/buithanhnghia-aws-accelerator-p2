@@ -1,0 +1,231 @@
+#!/bin/bash
+set -euxo pipefail
+
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -y
+apt-get install -y apache2 python3 python3-flask python3-pymysql
+a2enmod proxy proxy_http headers
+
+mkdir -p /opt/${app_name}
+
+cat > /opt/${app_name}/app.py <<'PYAPP'
+import os
+import time
+from flask import Flask, jsonify, request
+import pymysql
+
+app = Flask(__name__)
+
+DB_CONFIG = {
+    "host": os.environ["DB_HOST"],
+    "user": os.environ["DB_USER"],
+    "password": os.environ["DB_PASSWORD"],
+    "database": os.environ["DB_NAME"],
+    "cursorclass": pymysql.cursors.DictCursor,
+    "autocommit": True,
+}
+
+def connect_with_retry():
+    last_error = None
+    for _ in range(30):
+        try:
+            return pymysql.connect(**DB_CONFIG)
+        except Exception as exc:
+            last_error = exc
+            time.sleep(10)
+    raise last_error
+
+def init_db():
+    with connect_with_retry() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS messages (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    message VARCHAR(255) NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            cur.execute("SELECT COUNT(*) AS count FROM messages")
+            if cur.fetchone()["count"] == 0:
+                cur.execute("INSERT INTO messages (message) VALUES (%s)", ("Hello from RDS MySQL",))
+
+@app.after_request
+def add_cors_headers(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    response.headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS"
+    return response
+
+@app.route("/api/health")
+def health():
+    return jsonify({"status": "ok"})
+
+@app.route("/api/messages", methods=["GET", "POST", "OPTIONS"])
+def messages():
+    if request.method == "OPTIONS":
+        return ("", 204)
+    init_db()
+    with connect_with_retry() as conn:
+        with conn.cursor() as cur:
+            if request.method == "POST":
+                payload = request.get_json(silent=True) or {}
+                message = (payload.get("message") or "").strip()
+                if not message:
+                    return jsonify({"error": "message is required"}), 400
+                cur.execute("INSERT INTO messages (message) VALUES (%s)", (message[:255],))
+            cur.execute("SELECT id, message, created_at FROM messages ORDER BY id DESC LIMIT 10")
+            return jsonify(cur.fetchall())
+
+if __name__ == "__main__":
+    init_db()
+    app.run(host="127.0.0.1", port=5000)
+PYAPP
+
+cat > /etc/systemd/system/simple-webapp.service <<SERVICE
+[Unit]
+Description=Simple Flask API for Terraform web app
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Environment=DB_HOST=${db_host}
+Environment=DB_NAME=${db_name}
+Environment=DB_USER=${db_username}
+Environment=DB_PASSWORD=${db_password}
+WorkingDirectory=/opt/${app_name}
+ExecStart=/usr/bin/python3 /opt/${app_name}/app.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+SERVICE
+
+cat > /etc/apache2/conf-available/simple-webapp.conf <<'APACHE'
+ProxyPass /api/ http://127.0.0.1:5000/api/
+ProxyPassReverse /api/ http://127.0.0.1:5000/api/
+APACHE
+a2enconf simple-webapp
+
+cat > /var/www/html/index.html <<'HTML'
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Simple AWS Web App</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Arial, sans-serif;
+      color: #172033;
+      background: #f5f7fb;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+    }
+    main {
+      width: min(720px, calc(100vw - 32px));
+      background: #fff;
+      border: 1px solid #d9e1ef;
+      border-radius: 8px;
+      padding: 28px;
+      box-shadow: 0 18px 50px rgba(23, 32, 51, 0.08);
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 32px;
+    }
+    p {
+      margin: 0 0 20px;
+      color: #516078;
+    }
+    form {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    input {
+      flex: 1;
+      min-width: 0;
+      padding: 12px;
+      border: 1px solid #b9c5d8;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+    button {
+      padding: 12px 16px;
+      border: 0;
+      border-radius: 6px;
+      background: #176b5d;
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    ul {
+      padding-left: 20px;
+      line-height: 1.7;
+    }
+    .status {
+      min-height: 24px;
+      font-size: 14px;
+      color: #516078;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Simple AWS Web App</h1>
+    <p>Frontend runs on EC2 or S3. Backend runs on EC2. Data is stored in private RDS MySQL.</p>
+    <form id="message-form">
+      <input id="message-input" name="message" placeholder="Write a message to RDS" maxlength="255" required>
+      <button type="submit">Save</button>
+    </form>
+    <div class="status" id="status">Loading messages...</div>
+    <ul id="messages"></ul>
+  </main>
+  <script>
+    const apiBaseUrl = "";
+    const statusEl = document.querySelector("#status");
+    const listEl = document.querySelector("#messages");
+    const formEl = document.querySelector("#message-form");
+    const inputEl = document.querySelector("#message-input");
+
+    async function loadMessages() {
+      statusEl.textContent = "Loading messages...";
+      const response = await fetch(`$${apiBaseUrl}/api/messages`);
+      if (!response.ok) throw new Error("Could not load messages");
+      const messages = await response.json();
+      listEl.innerHTML = messages.map((item) => `<li>$${item.message}</li>`).join("");
+      statusEl.textContent = messages.length ? "Connected to backend and database." : "No messages yet.";
+    }
+
+    formEl.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const message = inputEl.value.trim();
+      if (!message) return;
+      await fetch(`$${apiBaseUrl}/api/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message })
+      });
+      inputEl.value = "";
+      await loadMessages();
+    });
+
+    loadMessages().catch((error) => {
+      statusEl.textContent = error.message;
+    });
+  </script>
+</body>
+</html>
+HTML
+
+systemctl daemon-reload
+systemctl enable simple-webapp
+systemctl restart simple-webapp
+systemctl enable apache2
+systemctl restart apache2
