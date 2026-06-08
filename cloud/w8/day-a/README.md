@@ -61,6 +61,13 @@ Các output chính:
 - `ec2_web_url`: địa chỉ frontend/API trên EC2
 - `rds_endpoint`: endpoint RDS MySQL private
 
+# Hình chạy lệnh 
+- S3 Backend
+![Lệnh S3BE](./evidence_img/bootstrap.png)
+
+- Terraform apply
+![Lệnh apply](./evidence_img/apply.png)
+
 ## 3. Kiểm tra
 
 Mở `s3_website_url`, nhập message và nhấn Save. Nếu thành công, frontend trên S3 sẽ gọi API trên EC2 và lưu dữ liệu vào RDS MySQL.
@@ -71,6 +78,9 @@ Bạn cũng có thể test API trực tiếp:
 Invoke-WebRequest "$(terraform output -raw ec2_web_url)/api/health" -UseBasicParsing
 Invoke-WebRequest "$(terraform output -raw ec2_web_url)/api/messages" -UseBasicParsing
 ```
+
+- Giao diện
+![Giao diện app](./evidence_img/web.png)
 
 ## 4. Xoá tài nguyên
 
