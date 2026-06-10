@@ -34,6 +34,12 @@ Lấy URL app:
 terraform output -raw app_url
 ```
 
+Chạy bộ test TDD để kiểm tra hợp đồng hạ tầng:
+
+```powershell
+terraform test
+```
+
 Mở URL đó trên browser. Kết quả đạt là trang **Pixel Game Store** hiển thị qua DNS của ALB.
 
 ## Kiến trúc
