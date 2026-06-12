@@ -1,0 +1,6 @@
+aws_region         = "ap-southeast-1"
+project_name       = "anh-minh-lab-1"
+notification_email = "your-email@example.com"
+instance_type      = "t2.micro"
+alarm_threshold    = 80
+enable_cpu_test    = false
