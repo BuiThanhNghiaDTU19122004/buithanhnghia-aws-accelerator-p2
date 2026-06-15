@@ -4,7 +4,7 @@ Lab này dựng phần trong slide: EC2 có IAM role `CloudWatchAgentServerPolic
 
 ## Tài nguyên được tạo
 
-- 1 EC2 Amazon Linux 2023 kích thước `t2.micro`
+- 1 EC2 Amazon Linux 2023 kích thước `t3.micro`
 - 1 IAM role cho EC2 với:
   - `CloudWatchAgentServerPolicy`
   - `AmazonSSMManagedInstanceCore`
@@ -14,10 +14,6 @@ Lab này dựng phần trong slide: EC2 có IAM role `CloudWatchAgentServerPolic
   - `disk_used_percent` cho `/`
 - 1 CloudWatch dashboard gồm CPU, network, memory, disk
 - 1 SNS topic, 1 email subscription placeholder, và 1 EC2 status-check alarm nhỏ để luyện notification
-
-## Free tier note
-
-Dashboard chỉ tạo 1 custom dashboard. CloudWatch Agent chỉ gửi 2 custom metrics ở chu kỳ 60 giây để nằm trong mức lab nhỏ. Không bật detailed monitoring cho EC2, không tạo NAT Gateway, không tạo load balancer, không mở log ingestion. Trước khi apply, hãy kiểm tra free tier/credit còn hiệu lực trong account AWS của bạn.
 
 ## Cách chạy
 
@@ -40,6 +36,8 @@ sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -m ec2 -a 
 ```
 
 Xem dashboard bằng output `dashboard_url`, hoặc vào AWS Console -> CloudWatch -> Dashboards -> chọn dashboard được tạo.
+
+![Hình dashboard](img/dashboard.png)
 
 ## Dọn dẹp
 

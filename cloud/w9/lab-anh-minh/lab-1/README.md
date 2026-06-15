@@ -4,15 +4,11 @@ Lab này dựng đúng luồng trong slide: EC2 -> CloudWatch CPU alarm -> SNS t
 
 ## Tài nguyên được tạo
 
-- 1 EC2 Amazon Linux 2023 kích thước `t2.micro`
+- 1 EC2 Amazon Linux 2023 kích thước `t3.micro`
 - 1 IAM role cho EC2, chỉ gắn `AmazonSSMManagedInstanceCore`
 - 1 security group không mở inbound, chỉ cho outbound
 - 1 SNS topic và 1 email subscription
 - 1 CloudWatch alarm theo metric `AWS/EC2 CPUUtilization`
-
-## Free tier note
-
-Cấu hình dùng tài nguyên nhỏ nhất có thể cho lab: EC2 micro, EBS 8 GB, CloudWatch basic metric, 1 standard alarm, 1 SNS email subscription. Trước khi apply, vẫn nên kiểm tra free tier còn hiệu lực trong account/Region của bạn vì AWS Free Tier phụ thuộc loại account và hạn mức sử dụng tháng.
 
 ## Cách chạy
 
@@ -31,7 +27,7 @@ terraform apply
 Cách an toàn nhất là dùng SSM Session Manager vào instance rồi chạy:
 
 ```bash
-sudo /home/ec2-user/cpu-burn.sh 8m
+for i in 1 2; do yes > /dev/null & done
 ```
 
 Hoặc đặt `enable_cpu_test = true` trước khi apply để instance tự chạy CPU test ngắn trong lần boot đầu tiên.
@@ -42,6 +38,11 @@ Alarm đang cấu hình theo yêu cầu slide:
 - Period: 5 minutes
 - Datapoints: 1 out of 1
 - Action: gửi notification tới SNS topic
+
+![Alarm](img/alarm.png)
+
+# Email
+![Email](img/email.png)
 
 ## Dọn dẹp
 
