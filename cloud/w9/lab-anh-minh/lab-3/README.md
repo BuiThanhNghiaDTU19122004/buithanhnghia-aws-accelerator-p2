@@ -82,7 +82,7 @@ Chèn hình tại đây:
 ## Dọn dẹp
 
 ```powershell
-terraform destroy --autp-approve
+terraform destroy --auto-approve
 ```
 
 Do S3 bucket CloudTrail có bật versioning, cấu hình Terraform đang đặt `force_destroy = true` để khi destroy bài lab có thể xóa bucket cùng các object bên trong.

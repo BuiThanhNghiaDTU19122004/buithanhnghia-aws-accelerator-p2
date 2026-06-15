@@ -160,7 +160,7 @@ resource "aws_cloudtrail" "root_login" {
 resource "aws_cloudwatch_log_metric_filter" "root_login" {
   name           = "${var.project_name}-root-login-filter"
   log_group_name = aws_cloudwatch_log_group.cloudtrail.name
-  pattern        = "{ ($.userIdentity.type = \"Root\") && ($.eventType != \"AwsServiceEvent\") }"
+  pattern        = "{ ($.eventName = \"ConsoleLogin\") && ($.userIdentity.type = \"Root\") }"
 
   metric_transformation {
     name          = var.metric_name
@@ -198,7 +198,7 @@ resource "aws_cloudwatch_metric_alarm" "root_login" {
   statistic           = "Sum"
   comparison_operator = "GreaterThanOrEqualToThreshold"
   threshold           = 1
-  period              = 300
+  period              = 60
   evaluation_periods  = 1
   datapoints_to_alarm = 1
   treat_missing_data  = "notBreaching"
