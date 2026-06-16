@@ -12,7 +12,7 @@ secrets.tfvars
 
 # Terraform directories
 .terraform/
-.terraform.lock.hcl
+/.terraform.lock.hcl
 
 # Terraform override files
 override.tf

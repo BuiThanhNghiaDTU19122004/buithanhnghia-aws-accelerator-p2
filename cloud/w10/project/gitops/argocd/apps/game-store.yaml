@@ -1,18 +1,17 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: monitoring-extras
+  name: game-store
   namespace: argocd
-  annotations:
-    argocd.argoproj.io/sync-wave: "0"
 spec:
   project: default
   source:
-    repoURL: https://github.com/BuiThanhNghiaDTU19122004/gitops.git
-    path: monitoring
+    repoURL: https://github.com/BuiThanhNghiaDTU19122004/buithanhnghia-aws-accelerator-p2.git
+    targetRevision: HEAD
+    path: cloud/w10/project/gitops/apps/game-store
   destination:
     server: https://kubernetes.default.svc
-    namespace: monitoring
+    namespace: demo
   syncPolicy:
     automated:
       prune: true
