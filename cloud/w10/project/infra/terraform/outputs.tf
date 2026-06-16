@@ -1,14 +1,31 @@
-output "argocd_status_command" {
-  description = "Command to check the Argo CD applications created by this project."
-  value       = "kubectl --context ${var.kube_context} -n ${var.argocd_namespace} get applications"
+output "ec2_public_ip" {
+  description = "Public IP of the Minikube EC2 instance"
+  value       = aws_instance.minikube.public_ip
 }
 
-output "argocd_url_command" {
-  description = "Command to open the Argo CD server through Minikube."
-  value       = "minikube -p ${var.minikube_profile} service argocd-server -n ${var.argocd_namespace} --url"
+output "ec2_instance_id" {
+  description = "Instance ID for SSM Session Manager"
+  value       = aws_instance.minikube.id
 }
 
-output "game_store_url_command" {
-  description = "Command to open the demo app through Minikube."
-  value       = "minikube -p ${var.minikube_profile} service game-store -n demo --url"
+output "argocd_access_instructions" {
+  description = "Instructions to access ArgoCD UI"
+  value       = <<-EOT
+    1. Connect to EC2 via SSM: aws ssm start-session --target ${aws_instance.minikube.id}
+    2. Switch to ec2-user: sudo su - ec2-user
+    3. ArgoCD is exposed on fixed NodePort 30080.
+    4. Access UI at: http://${aws_instance.minikube.public_ip}:30080
+    5. Get initial admin password: kubectl -n ${var.argocd_namespace} get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+  EOT
+}
+
+output "game_store_access_instructions" {
+  description = "Instructions to access Game Store App"
+  value       = <<-EOT
+    1. Connect to EC2 via SSM: aws ssm start-session --target ${aws_instance.minikube.id}
+    2. Switch to ec2-user: sudo su - ec2-user
+    3. Wait for ArgoCD to sync the app (check UI), then get GameStore NodePort: 
+       kubectl get svc game-store -n demo -o jsonpath='{.spec.ports[0].nodePort}'
+    4. Access Game Store at: http://${aws_instance.minikube.public_ip}:<NODE_PORT>
+  EOT
 }

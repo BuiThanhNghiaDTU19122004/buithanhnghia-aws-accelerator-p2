@@ -2,26 +2,13 @@ terraform {
   required_version = ">= 1.6.0"
 
   required_providers {
-    helm = {
-      source  = "hashicorp/helm"
-      version = "~> 2.16"
-    }
-
-    kubernetes = {
-      source  = "hashicorp/kubernetes"
-      version = "~> 2.31"
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 6.0"
     }
   }
 }
 
-provider "kubernetes" {
-  config_path    = pathexpand(var.kubeconfig_path)
-  config_context = var.kube_context
-}
-
-provider "helm" {
-  kubernetes {
-    config_path    = pathexpand(var.kubeconfig_path)
-    config_context = var.kube_context
-  }
+provider "aws" {
+  region = var.aws_region
 }

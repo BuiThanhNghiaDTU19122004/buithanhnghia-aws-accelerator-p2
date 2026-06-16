@@ -1,0 +1,80 @@
+#!/bin/bash
+set -euxo pipefail
+
+exec > >(tee /var/log/user-data.log | logger -t user-data -s 2>/dev/console) 2>&1
+
+echo "===== 1. Installing dependencies ====="
+dnf update -y
+dnf install -y docker git curl
+
+echo "===== 2. Installing kubectl ====="
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+echo "===== 3. Installing Helm ====="
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+chmod 700 get_helm.sh
+./get_helm.sh
+
+echo "===== 4. Installing Minikube ====="
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+install minikube-linux-amd64 /usr/local/bin/minikube
+
+echo "===== 5. Setting up Docker and User ====="
+systemctl enable --now docker
+usermod -aG docker ec2-user
+
+echo "===== 6. Preparing App Files ====="
+mkdir -p /opt/game-store/app /opt/game-store/gitops
+
+cat << 'EOF_APP_DOCKERFILE' > /opt/game-store/app/Dockerfile
+${app_dockerfile}
+EOF_APP_DOCKERFILE
+
+cat << 'EOF_APP_INDEX' > /opt/game-store/app/index.html
+${app_index_html}
+EOF_APP_INDEX
+
+cat << 'EOF_GITOPS_ROOT' > /opt/game-store/gitops/root.yaml
+${argocd_root_manifest}
+EOF_GITOPS_ROOT
+
+chown -R ec2-user:ec2-user /opt/game-store
+
+echo "===== 7. Starting Minikube ====="
+# Run as ec2-user to avoid root issues with docker driver
+su - ec2-user -c "minikube start --driver=docker --force"
+
+echo "===== 8. Building App Image ====="
+su - ec2-user -c "minikube image build -t game-store:local /opt/game-store/app"
+
+echo "===== 9. Installing ArgoCD ====="
+su - ec2-user -c "kubectl create namespace ${argocd_namespace} --dry-run=client -o yaml | kubectl apply -f -"
+su - ec2-user -c "helm repo add argo https://argoproj.github.io/argo-helm"
+
+# CRITICAL: Hardcode NodePort 30080 and add --insecure flag for ALB HTTP termination
+%{ if argocd_chart_version != null ~}
+su - ec2-user -c "helm install argocd argo/argo-cd \
+  --namespace ${argocd_namespace} \
+  --set server.service.type=NodePort \
+  --set server.service.nodePort=30080 \
+  --set server.extraArgs[0]=--insecure \
+  --version ${argocd_chart_version} \
+  --wait --timeout 600s"
+%{ else ~}
+su - ec2-user -c "helm install argocd argo/argo-cd \
+  --namespace ${argocd_namespace} \
+  --set server.service.type=NodePort \
+  --set server.service.nodePort=30080 \
+  --set server.extraArgs[0]=--insecure \
+  --wait --timeout 600s"
+%{ endif ~}
+
+echo "===== 10. Applying ArgoCD Root Manifest ====="
+su - ec2-user -c "kubectl wait --for=condition=available deployment/argocd-server -n ${argocd_namespace} --timeout=300s"
+su - ec2-user -c "kubectl apply -f /opt/game-store/gitops/root.yaml"
+
+# Patch ArgoCD service to use a fixed NodePort (30080) for easier access
+su - ec2-user -c "kubectl patch svc argocd-server -n ${argocd_namespace} -p '{\"spec\": {\"type\": \"NodePort\", \"ports\": [{\"port\": 80, \"nodePort\": 30080}]}}'"
+
+echo "===== Setup Complete! ====="
