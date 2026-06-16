@@ -5,7 +5,7 @@ exec > >(tee /var/log/user-data.log | logger -t user-data -s 2>/dev/console) 2>&
 
 echo "===== 1. Installing dependencies ====="
 dnf update -y
-dnf install -y docker git curl
+dnf install -y docker git curl-minimal || dnf install -y docker git curl --allowerasing
 
 echo "===== 2. Installing kubectl ====="
 curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
