@@ -71,10 +71,10 @@ su - ec2-user -c "helm install argocd argo/argo-cd \
 %{ endif ~}
 
 echo "===== 10. Applying ArgoCD Root Manifest ====="
-su - ec2-user -c "kubectl wait --for=condition=available deployment/argocd-server -n ${argocd_namespace} --timeout=300s"
+su - ec2-user -c "kubectl wait --for=condition=available deployment/argocd-server -n argocd --timeout=300s"
 su - ec2-user -c "kubectl apply -f /opt/game-store/gitops/root.yaml"
 
-# Patch ArgoCD service to use a fixed NodePort (30080) for easier access
-su - ec2-user -c "kubectl patch svc argocd-server -n ${argocd_namespace} -p '{\"spec\": {\"type\": \"NodePort\", \"ports\": [{\"port\": 80, \"nodePort\": 30080}]}}'"
+echo "===== 11. Waiting for ArgoCD to sync applications ====="
+su - ec2-user -c "kubectl wait --for=condition=available deployment/game-store -n demo --timeout=300s" || true
 
 echo "===== Setup Complete! ====="

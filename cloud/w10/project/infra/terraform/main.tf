@@ -234,7 +234,6 @@ resource "aws_lb_listener" "http" {
   }
 }
 
-# Rule 1: Route argocd.local to ArgoCD Target Group
 resource "aws_lb_listener_rule" "argocd" {
   listener_arn = aws_lb_listener.http.arn
   priority     = 100
@@ -245,8 +244,8 @@ resource "aws_lb_listener_rule" "argocd" {
   }
 
   condition {
-    host_header {
-      values = ["argocd.local"]
+    path_pattern {
+      values = ["/argocd*", "/login*", "/applications*", "/settings*", "/user-info*"]
     }
   }
 }
@@ -262,8 +261,8 @@ resource "aws_lb_listener_rule" "game_store" {
   }
 
   condition {
-    host_header {
-      values = ["app.local"]
+    path_pattern {
+      values = ["/*"]
     }
   }
 }

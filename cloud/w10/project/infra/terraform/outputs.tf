@@ -29,3 +29,7 @@ output "game_store_access_instructions" {
     4. Access Game Store at: http://${aws_instance.minikube.public_ip}:<NODE_PORT>
   EOT
 }
+
+output "alb_dns_name" {
+  value = aws_lb.app.dns_name
+}
