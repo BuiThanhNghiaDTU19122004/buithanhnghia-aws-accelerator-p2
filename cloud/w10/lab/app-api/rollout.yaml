@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
       - name: api
-        image: ghcr.io/BuiThanhNghiaDTU19122004/w10-api:0.0.2
+        image: ghcr.io/buithanhghiaedu19122004/w10-api:0.0.2
         imagePullPolicy: Always
         ports:
         - containerPort: 8080

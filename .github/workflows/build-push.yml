@@ -64,7 +64,8 @@ jobs:
 
       - name: Update rollout.yaml with new version
         run: |
-          sed -i "s|image: ghcr.io/.*/w10-api:.*|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.semver.outputs.version }}|g" cloud/w10/lab/app-api/rollout.yaml
+          IMAGE_LOWERCASE=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
+          sed -i "s|image: ghcr.io/.*/w10-api:.*|image: ${IMAGE_LOWERCASE}:${{ steps.semver.outputs.version }}|g" cloud/w10/lab/app-api/rollout.yaml
           sed -i "s|value: \"v.*\"|value: \"v${{ steps.semver.outputs.version }}\"|g" cloud/w10/lab/app-api/rollout.yaml
 
       - name: Commit and push version update
