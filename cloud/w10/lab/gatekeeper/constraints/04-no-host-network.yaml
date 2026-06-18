@@ -7,14 +7,14 @@ metadata:
     argocd.argoproj.io/sync-wave: "1"
 spec:
   enforcementAction: warn
-match:
-  kinds:
-  - apiGroups: [""]
+  match:
     kinds:
-      - Pod
-  - apiGroups: ["apps"]
-    kinds:
-      - Deployment
-  - apiGroups: ["argoproj.io"]
-    kinds:
-      - Rollout
+    - apiGroups: [""]
+      kinds:
+        - Pod
+    - apiGroups: ["apps"]
+      kinds:
+        - Deployment
+    - apiGroups: ["argoproj.io"]
+      kinds:
+        - Rollout

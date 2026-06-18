@@ -6,19 +6,19 @@ metadata:
     argocd.argoproj.io/sync-wave: "0"
 spec:
   enforcementAction: warn
-match:
-  kinds:
-  - apiGroups: [""]
-    kinds:
-      - Pod
-  - apiGroups: ["apps"]
-    kinds:
-      - Deployment
-  - apiGroups: ["argoproj.io"]
-    kinds:
-      - Rollout
+  match:
     namespaces:
-    - "demo"   
+      - "demo"  
+    kinds:
+    - apiGroups: [""]
+      kinds:
+        - Pod
+    - apiGroups: ["apps"]
+      kinds:
+        - Deployment
+    - apiGroups: ["argoproj.io"]
+      kinds:
+        - Rollout 
   parameters:
     allowedRegistries:
     - "ghcr.io/buithanhnghiadtu19122004/"

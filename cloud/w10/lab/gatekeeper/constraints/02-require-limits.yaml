@@ -9,14 +9,12 @@ spec:
   enforcementAction: warn
   match:
     kinds:
-match:
-  kinds:
-  - apiGroups: [""]
-    kinds:
-      - Pod
-  - apiGroups: ["apps"]
-    kinds:
-      - Deployment
-  - apiGroups: ["argoproj.io"]
-    kinds:
-      - Rollout
+    - apiGroups: [""]
+      kinds:
+        - Pod
+    - apiGroups: ["apps"]
+      kinds:
+        - Deployment
+    - apiGroups: ["argoproj.io"]
+      kinds:
+        - Rollout
