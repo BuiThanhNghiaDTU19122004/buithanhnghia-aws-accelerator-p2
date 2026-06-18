@@ -8,9 +8,9 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://external-secrets.github.io/kubernetes-external-secrets
-    chart: kubernetes-external-secrets
-    targetRevision: 8.5.5
+    repoURL: https://charts.external-secrets.io
+    chart: external-secrets
+    targetRevision: "2.6.0"
   destination:
     server: https://kubernetes.default.svc
     namespace: external-secrets
