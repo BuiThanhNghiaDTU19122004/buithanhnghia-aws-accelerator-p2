@@ -7,35 +7,15 @@ metadata:
     argocd.argoproj.io/sync-wave: "-3"
 spec:
   project: default
+  spec:
+  project: default
   source:
     repoURL: https://charts.external-secrets.io
     chart: external-secrets
-    targetRevision: 0.9.11
+    targetRevision: "0.9.20"
     helm:
       values: |
-        resources:
-          limits:
-            cpu: 100m
-            memory: 128Mi
-          requests:
-            cpu: 50m
-            memory: 64Mi
-        webhook:
-          resources:
-            limits:
-              cpu: 100m
-              memory: 128Mi
-            requests:
-              cpu: 50m
-              memory: 64Mi
-        certController:
-          resources:
-            limits:
-              cpu: 100m
-              memory: 128Mi
-            requests:
-              cpu: 50m
-              memory: 64Mi
+        installCRDs: true
   destination:
     server: https://kubernetes.default.svc
     namespace: external-secrets
