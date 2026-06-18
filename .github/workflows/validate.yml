@@ -9,7 +9,7 @@ on:
     - 'app-common/**'
     - 'argocd/**'
     - 'rbac/**'
-    # - 'gatekeeper/**'
+    - 'gatekeeper/**'
     # - 'eso/**'
     # - 'signing/**'
 jobs:
