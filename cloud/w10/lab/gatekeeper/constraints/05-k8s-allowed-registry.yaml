@@ -1,10 +1,9 @@
-# Rule 03: Cấm runAsUser: 0 (chạy root)
 apiVersion: constraints.gatekeeper.sh/v1beta1
-kind: K8sBlockRootUser
+kind: K8sAllowedRegistry
 metadata:
-  name: no-root-user
+  name: allowed-registry-ghcr
   annotations:
-    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   enforcementAction: warn
 match:
@@ -12,11 +11,14 @@ match:
   - apiGroups: [""]
     kinds:
       - Pod
-
   - apiGroups: ["apps"]
     kinds:
       - Deployment
-
   - apiGroups: ["argoproj.io"]
     kinds:
       - Rollout
+    namespaces:
+    - "demo"   
+  parameters:
+    allowedRegistries:
+    - "ghcr.io/buithanhnghiadtu19122004/"

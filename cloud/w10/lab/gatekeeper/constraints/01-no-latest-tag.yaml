@@ -1,17 +1,21 @@
-# Rule 01: Cấm image tag :latest
 apiVersion: constraints.gatekeeper.sh/v1beta1
 kind: K8sDisallowedTags
 metadata:
   name: no-latest-tag
   annotations:
-    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   enforcementAction: warn
-  match:
+match:
+  kinds:
+  - apiGroups: [""]
     kinds:
-    - apiGroups: ["apps"]           
-      kinds: ["Deployment"]
-    - apiGroups: ["argoproj.io"]    
-      kinds: ["Rollout"]
+      - Pod
+  - apiGroups: ["apps"]
+    kinds:
+      - Deployment
+  - apiGroups: ["argoproj.io"]
+    kinds:
+      - Rollout
   parameters:
     tags: ["latest"]
