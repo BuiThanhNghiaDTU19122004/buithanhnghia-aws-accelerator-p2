@@ -12,3 +12,7 @@ spec:
     - apiGroups: [""]
       kinds:
         - Pod
+  parameters:
+    hostNetwork: false
+    min: 0
+    max: 0

@@ -12,3 +12,6 @@ spec:
     - apiGroups: [""]
       kinds:
         - Pod
+  parameters:
+    runAsUser:
+      rule: MustRunAsNonRoot
