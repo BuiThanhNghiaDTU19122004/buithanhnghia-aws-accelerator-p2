@@ -11,6 +11,31 @@ spec:
     repoURL: https://charts.external-secrets.io
     chart: external-secrets
     targetRevision: "2.6.0"
+    helm:
+      values: |
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        webhook:
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+        certController:
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
   destination:
     server: https://kubernetes.default.svc
     namespace: external-secrets
