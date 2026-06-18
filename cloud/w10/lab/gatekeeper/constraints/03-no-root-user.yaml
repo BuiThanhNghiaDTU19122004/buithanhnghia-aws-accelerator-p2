@@ -1,6 +1,6 @@
 # Rule 03: Cấm runAsUser: 0 (chạy root)
 apiVersion: constraints.gatekeeper.sh/v1beta1
-kind: K8sBlockRootUser
+kind: K8sPSPAllowedUsers
 metadata:
   name: no-root-user
   annotations:
