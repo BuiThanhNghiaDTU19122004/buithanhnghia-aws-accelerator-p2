@@ -12,7 +12,7 @@ spec:
     - apiGroups: [""]
       kinds:
         - Pod
-    parameters:
-      limits:
-        - cpu
-        - memory
+  parameters:
+    limits:
+      - cpu
+      - memory
