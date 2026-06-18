@@ -11,11 +11,5 @@ spec:
     - apiGroups: [""]
       kinds:
         - Pod
-    - apiGroups: ["apps"]
-      kinds:
-        - Deployment
-    - apiGroups: ["argoproj.io"]
-      kinds:
-        - Rollout
   parameters:
     tags: ["latest"]
