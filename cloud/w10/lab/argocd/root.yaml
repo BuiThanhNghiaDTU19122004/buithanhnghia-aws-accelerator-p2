@@ -8,7 +8,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/Vuong-Bach/temp.git
+    repoURL: https://github.com/BuiThanhNghiaDTU19122004/buithanhnghia-aws-accelerator-p2/tree/main/cloud/w10/lab
     path: argocd/apps
     targetRevision: main
   destination:
