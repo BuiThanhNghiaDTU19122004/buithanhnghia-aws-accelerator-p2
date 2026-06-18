@@ -1,0 +1,29 @@
+# Cấm hostNetwork: true
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8sblockhostnetwork
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sBlockHostNetwork
+  targets:
+  - target: admission.k8s.gatekeeper.sh
+    rego: |
+      package k8sblockhostnetwork
+      violation[{"msg": msg}] {
+        input.review.object.spec.template.spec.hostNetwork == true
+        msg := "hostNetwork: true bị cấm"
+      }
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sBlockHostNetwork
+metadata:
+  name: no-host-network
+spec:
+  enforcementAction: warn
+  match:
+    kinds:
+    - apiGroups: ["apps", "argoproj.io"]
+      kinds: ["Deployment", "Rollout"]

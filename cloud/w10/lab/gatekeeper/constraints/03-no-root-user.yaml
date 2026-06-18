@@ -1,0 +1,30 @@
+# Rule 03: Cấm runAsUser: 0 (chạy root)
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8sblockrootuser
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sBlockRootUser
+  targets:
+  - target: admission.k8s.gatekeeper.sh
+    rego: |
+      package k8sblockrootuser
+      violation[{"msg": msg}] {
+        container := input.review.object.spec.template.spec.containers[_]
+        container.securityContext.runAsUser == 0
+        msg := sprintf("Container '%v' không được chạy runAsUser: 0 (root)", [container.name])
+      }
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sBlockRootUser
+metadata:
+  name: no-root-user
+spec:
+  enforcementAction: warn
+  match:
+    kinds:
+    - apiGroups: ["apps", "argoproj.io"]
+      kinds: ["Deployment", "Rollout"]

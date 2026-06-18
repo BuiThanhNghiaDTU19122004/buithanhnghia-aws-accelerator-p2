@@ -1,0 +1,30 @@
+# Rule 02: Bắt buộc có resources.limits
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8srequiredresources
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sRequiredResources
+  targets:
+  - target: admission.k8s.gatekeeper.sh
+    rego: |
+      package k8srequiredresources
+      violation[{"msg": msg}] {
+        container := input.review.object.spec.template.spec.containers[_]
+        not container.resources.limits
+        msg := sprintf("Container '%v' thiếu resources.limits", [container.name])
+      }
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sRequiredResources
+metadata:
+  name: require-resource-limits
+spec:
+  enforcementAction: warn
+  match:
+    kinds:
+    - apiGroups: ["apps", "argoproj.io"]
+      kinds: ["Deployment", "Rollout"]
