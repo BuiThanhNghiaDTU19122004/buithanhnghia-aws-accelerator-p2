@@ -21,14 +21,14 @@ spec:
     spec:
       containers:
       - name: api
-        image: ghcr.io/buithanhnghiadtu19122004/w10-api:0.0.1
+        image: ghcr.io/BuiThanhNghiaDTU19122004/w10-api:0.0.2
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
           protocol: TCP
         env:
         - name: VERSION
-          value: "v0.0.1"
+          value: "v0.0.2"
         - name: ERROR_RATE
           value: "0"
         livenessProbe:
