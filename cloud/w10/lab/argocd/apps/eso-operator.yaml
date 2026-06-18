@@ -45,3 +45,15 @@ spec:
       selfHeal: true
     syncOptions:
     - CreateNamespace=true
+    - ServerSideApply=true
+  ignoreDifferences:
+  - group: apiextensions.k8s.io
+    kind: CustomResourceDefinition
+    name: clustersecretstores.external-secrets.io
+    jsonPointers:
+    - /metadata/annotations
+  - group: apiextensions.k8s.io
+    kind: CustomResourceDefinition
+    name: secretstores.external-secrets.io
+    jsonPointers:
+    - /metadata/annotations
