@@ -26,5 +26,7 @@ spec:
   enforcementAction: warn
   match:
     kinds:
-    - apiGroups: ["apps", "argoproj.io"]
-      kinds: ["Deployment", "Rollout"]
+    - apiGroups: ["apps"]           
+      kinds: ["Deployment"]
+    - apiGroups: ["argoproj.io"]    
+      kinds: ["Rollout"]

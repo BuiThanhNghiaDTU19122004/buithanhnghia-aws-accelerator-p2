@@ -30,10 +30,12 @@ kind: K8sDisallowedTags
 metadata:
   name: no-latest-tag
 spec:
-  enforcementAction: warn   # đổi sang "deny" sau khi audit sạch
+  enforcementAction: warn
   match:
     kinds:
-    - apiGroups: ["apps", "argoproj.io"]
-      kinds: ["Deployment", "Rollout"]
+    - apiGroups: ["apps"]           
+      kinds: ["Deployment"]
+    - apiGroups: ["argoproj.io"]    
+      kinds: ["Rollout"]
   parameters:
     tags: ["latest"]
