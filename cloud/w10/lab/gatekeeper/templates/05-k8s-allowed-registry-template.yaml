@@ -13,7 +13,6 @@ spec:
     spec:
       names:
         kind: K8sAllowedRegistry
-        plural: k8sallowedregistries
       validation:
         openAPIV3Schema:
           type: object
