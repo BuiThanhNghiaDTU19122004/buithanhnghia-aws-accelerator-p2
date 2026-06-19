@@ -75,7 +75,7 @@
 
 > `--as` là impersonation (admin giả lập user) — đủ để chấm authorization, chưa cần authentication thật.
 
-![Lab 1.1 — RBAC auth can-i](img/w10-morning-lab1.1.jpg)
+![Lab 1.1 — RBAC auth can-i](img/w10-morning-lab1.1.png)
 
 ---
 
@@ -180,14 +180,9 @@ wave 1 → eso-config   (SecretStore + ExternalSecret)
 <!-- 🖼️ PLACEHOLDER ẢNH 1 -->
 ![Lab 2.1 — SecretStore + ExternalSecret Synced trên ArgoCD](img/w10-afternoon-lab2.1-synced.png)
 
-<!-- 🖼️ PLACEHOLDER ẢNH 2 -->
-![Lab 2.1 — K8s Secret được tạo tự động](img/w10-afternoon-lab2.1-secret-created.png)
-
 <!-- 🖼️ PLACEHOLDER ẢNH 3 -->
 ![Lab 2.1 — Đổi value trên AWS, Secret cập nhật < 60s](img/w10-afternoon-lab2.1-rotate.png)
 
-<!-- 🖼️ PLACEHOLDER ẢNH 4 -->
-![Lab 2.1 — Pod AGE không đổi sau rotate (no restart)](img/w10-afternoon-lab2.1-no-restart.png)
 
 ---
 
