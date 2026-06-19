@@ -19,6 +19,18 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: cosign-system
+    
+  ignoreDifferences:
+    - group: admissionregistration.k8s.io
+      kind: MutatingWebhookConfiguration
+      jsonPointers:
+        - /webhooks/0/clientConfig/caBundle
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+      jsonPointers:
+        - /webhooks/0/clientConfig/caBundle
+        - /webhooks/0/failurePolicy
+
   syncPolicy:
     automated:
       prune: true
