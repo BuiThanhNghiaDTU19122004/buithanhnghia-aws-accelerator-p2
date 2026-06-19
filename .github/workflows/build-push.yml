@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          
+
       - name: Set lowercase image name
         run: |
           echo "IMAGE_NAME_LOWERCASE=$(echo ${{ github.repository_owner }}/w10-api | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
@@ -53,30 +53,41 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWERCASE }}
           tags: |
             type=raw,value=latest
             type=raw,value=${{ steps.semver.outputs.version }}
             type=sha,prefix=v${{ steps.semver.outputs.version }}-
 
-      - name: Build and push Docker image
+      # ===== BƯỚC 1: Build image CHỈ ở local, KHÔNG push =====
+      - name: Build Docker image (local only, no push)
         uses: docker/build-push-action@v6
         with:
           context: ./cloud/w10/lab/src/api
-          push: true
+          push: false
+          load: true                       # Nạp image vào Docker daemon của Runner
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-      # ===== Trivy Scan =====
-      - name: Scan with Trivy
+      # ===== BƯỚC 2: Scan image local trước khi push =====
+      - name: Scan with Trivy (Security Gate)
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWERCASE }}:${{ steps.semver.outputs.version }}
           severity: HIGH,CRITICAL
           exit-code: 1
           ignore-unfixed: true
+          # Nếu step này fail (exit-code 1), job dừng ngay tại đây.
+          # => Image KHÔNG hề tồn tại trên ghcr.io. An toàn tuyệt đối.
 
-      # ===== Cosign Sign =====
+      # ===== BƯỚC 3: Push CHỈ khi Trivy đã pass =====
+      - name: Push Docker image
+        run: |
+          for tag in ${{ steps.meta.outputs.tags }}; do
+            docker push "$tag"
+          done
+
+      # ===== Cosign Sign (chỉ ký image đã pass scan + đã push) =====
       - name: Install Cosign
         uses: sigstore/cosign-installer@main
 
@@ -90,7 +101,7 @@ jobs:
 
       - name: Update rollout.yaml with new version
         run: |
-          IMAGE_LOWERCASE=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWERCASE }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE_LOWERCASE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWERCASE }}"
           sed -i "s|image: ghcr.io/.*/w10-api:.*|image: ${IMAGE_LOWERCASE}:${{ steps.semver.outputs.version }}|g" cloud/w10/lab/app-api/rollout.yaml
           sed -i "s|value: \"v.*\"|value: \"v${{ steps.semver.outputs.version }}\"|g" cloud/w10/lab/app-api/rollout.yaml
 

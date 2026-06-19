@@ -10,8 +10,8 @@ on:
     - 'argocd/**'
     - 'rbac/**'
     - 'gatekeeper/**'
-    # - 'eso/**'
-    # - 'signing/**'
+    - 'eso/**'
+    - 'signing/**'
 jobs:
   validate:
     runs-on: ubuntu-latest
