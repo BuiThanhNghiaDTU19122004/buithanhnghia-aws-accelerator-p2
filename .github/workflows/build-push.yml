@@ -8,8 +8,7 @@ on:
     paths:
       - 'cloud/w10/lab/app-api/**'               
       - '.github/workflows/build-push.yml'
-    paths-ignore:
-      - 'cloud/w10/lab/app-api/rollout.yaml'
+      - '!cloud/w10/lab/app-api/rollout.yaml'
   workflow_dispatch:
 
 env:
