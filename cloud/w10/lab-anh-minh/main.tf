@@ -25,6 +25,7 @@ provider "aws" {
 # ===== S3 BUCKET FOR SAMPLE FILES =====
 resource "aws_s3_bucket" "sample_files" {
   bucket = "${var.bucket_name}-${data.aws_caller_identity.current.account_id}"
+  force_destroy = true
 }
 
 resource "aws_s3_bucket_versioning" "sample_files" {
