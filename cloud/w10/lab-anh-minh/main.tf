@@ -1,6 +1,6 @@
 terraform {
   required_version = ">= 1.6.0"
-  
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -11,12 +11,13 @@ terraform {
 
 provider "aws" {
   region = var.aws_region
-  
+
   default_tags {
     tags = {
       Environment = var.environment
       ManagedBy   = "Terraform"
       Lab         = "Macie-S3-Detection"
+      Owner       = "nghia"
     }
   }
 }
@@ -56,27 +57,26 @@ resource "aws_s3_bucket_public_access_block" "sample_files" {
 # ===== MACIE SETUP =====
 resource "aws_macie2_account" "main" {
   status = "ENABLED"
+
+  finding_publishing_frequency = "FIFTEEN_MINUTES"
 }
 
 # Create Macie Classification Job
 resource "aws_macie2_classification_job" "s3_scan" {
   depends_on = [aws_macie2_account.main]
 
-  job_type      = "ONE_TIME"
-  job_status    = "READY"
-  name          = "${var.environment}-s3-classification-job"
-  description   = "Scan S3 bucket for sensitive data"
+  job_type    = "ONE_TIME"
+  name_prefix = "${var.environment}-s3-classification-job-"
+  description = "Scan S3 bucket for sensitive data"
+
   sampling_percentage = 100
+
 
   s3_job_definition {
     bucket_definitions {
       account_id = data.aws_caller_identity.current.account_id
       buckets    = [aws_s3_bucket.sample_files.id]
     }
-  }
-
-  managed_data_identifier_selector {
-    selector = "ALL"
   }
 }
 
@@ -102,6 +102,13 @@ resource "aws_sns_topic_policy" "macie_alerts" {
         }
         Action   = "SNS:Publish"
         Resource = aws_sns_topic.macie_alerts.arn
+        # HARDENING: Chi cho phep rule EventBridge cu the nay duoc publish,
+        # tuan thu nguyen tac least-privilege (Security Pillar).
+        Condition = {
+          ArnEquals = {
+            "aws:SourceArn" = aws_cloudwatch_event_rule.macie_findings.arn
+          }
+        }
       }
     ]
   })
@@ -119,14 +126,18 @@ resource "aws_cloudwatch_event_rule" "macie_findings" {
   name        = "${var.environment}-macie-findings-rule"
   description = "Capture Macie findings and send to SNS"
 
+  # FIX: Schema thuc te cua event "Macie Finding" la:
+  #   detail.severity = { "score": 1-3, "description": "Low"|"Medium"|"High" }
+  # Macie KHONG co muc "CRITICAL". Cu phap { value = "HIGH" } cung khong
+  # ton tai trong EventBridge content-filtering - phai dua thang gia tri
+  # vao array de match chinh xac.
   event_pattern = jsonencode({
     source      = ["aws.macie"]
     detail-type = ["Macie Finding"]
     detail = {
-      severity = [
-        { value = "HIGH" },
-        { value = "CRITICAL" }
-      ]
+      severity = {
+        description = ["Medium", "High"]
+      }
     }
   })
 
@@ -142,7 +153,9 @@ resource "aws_cloudwatch_event_target" "macie_to_sns" {
 
   input_transformer {
     input_paths = {
-      severity = "$.detail.severity"
+      # FIX: phai lay .description de ra chuoi "High"/"Medium", neu khong
+      # se chen nguyen object JSON {score, description} vao template.
+      severity = "$.detail.severity.description"
       title    = "$.detail.title"
       resource = "$.detail.resourcesAffected.s3Object.key"
       bucket   = "$.detail.resourcesAffected.s3Bucket.name"
