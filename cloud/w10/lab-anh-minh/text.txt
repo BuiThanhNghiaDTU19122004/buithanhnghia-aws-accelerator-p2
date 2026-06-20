@@ -1,0 +1,57 @@
+CUSTOMER RECORDS - CONFIDENTIAL
+================================
+
+Record ID: CUST-001
+Customer Name: Nguyen Van A
+Email: nguyenvana@email.com
+Phone: +84 912 345 678
+Date of Birth: 1990-05-15
+ID Card Number: 001012345678
+
+Credit Card Information:
+Card Number: 4111111111111111
+Card Holder: NGUYEN VAN A
+Expiry Date: 12/2025
+CVV: 123
+
+Banking Details:
+Account Number: 1234567890
+Routing Number: 021000021
+Bank Name: State Bank of Vietnam
+
+---
+
+Record ID: CUST-002
+Customer Name: Tran Thi B
+Email: tranthib@example.com
+Phone: +84 987 654 321
+Date of Birth: 1985-08-20
+Passport Number: AB1234567
+Tax ID: 1234567890
+
+Credit Card Information:
+Card Number: 5555555555554444
+Card Holder: TRAN THI B
+Expiry Date: 06/2026
+CVV: 456
+
+Social Security Credentials:
+National ID: 123456789012
+Insurance ID: INS-98765432
+
+---
+
+Record ID: CUST-003
+Customer Name: Le Hoang C
+Email: lehoangc@mail.com
+Phone: +84 908 765 432
+Date of Birth: 1992-03-10
+
+Visa Number: VN123456789
+Medical Record ID: MED-2024-00123
+Health Insurance: 456789123
+
+Secret API Key: AKIA2E9B3F7G8H9I1J2K
+AWS Access Key: AKIAIOSFODNN7EXAMPLE
+Private Key: -----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7W...
